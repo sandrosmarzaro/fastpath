@@ -1,5 +1,8 @@
 target-version = 'py313'
 line-length = 79
+exclude = [
+    'app/migrations/',
+]
 
 [format]
 quote-style = 'single'
@@ -7,6 +10,7 @@ quote-style = 'single'
 [lint]
 select = ['ALL']
 ignore = [
+    'B008',
     'D100',
     'D101',
     'D102',
@@ -17,6 +21,7 @@ ignore = [
     'D107',
     'D200',
     'D205',
+    'D211',
     'D212',
     'D400',
     'D401',
