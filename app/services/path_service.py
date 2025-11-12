@@ -20,7 +20,7 @@ class PathService:
         path = await self.repository.search(path_id)
         if path is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return PathResponse(path)
+        return path
 
     async def create_path(self, path: PathCreate) -> PathResponse:
         return await self.repository.create(path.model_dump())
@@ -29,7 +29,7 @@ class PathService:
         path = await self.repository.search(path_id)
         if path is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return await self.repository.delete(path_id)
+        return await self.repository.delete(path)
 
 
 def get_path_service(

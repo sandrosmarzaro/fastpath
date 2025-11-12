@@ -66,10 +66,9 @@ class PathRepository:
         )
         return result.scalars().all()
 
-    async def delete(self, path_id: UUID) -> None:
-        await self.db_session.execute(
-            select(PathModel).where(PathModel.id == path_id),
-        )
+    async def delete(self, path: PathModel) -> None:
+        await self.db_session.delete(path)
+        await self.db_session.commit()
 
 
 def get_path_repository(
