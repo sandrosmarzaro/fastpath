@@ -1,0 +1,38 @@
+from uuid import UUID
+
+from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.coordinates_model import CoordinatesModel
+from app.models.table_model import TableModel
+
+dropoff_coordinates = Table(
+    'dropoff_coordinates',
+    TableModel.metadata,
+    Column('coordinates_id', ForeignKey('coordinates.id'), primary_key=True),
+    Column('path_id', ForeignKey('paths.id'), primary_key=True),
+)
+
+
+class PathModel(TableModel):
+    __tablename__ = 'paths'
+
+    pickup_id: Mapped[UUID] = mapped_column(
+        ForeignKey('coordinates.id'),
+        nullable=False,
+    )
+    pickup: Mapped[CoordinatesModel] = relationship(
+        back_populates='paths',
+        lazy='raise',
+    )
+    dropoff: Mapped[list[CoordinatesModel]] = relationship(
+        secondary=dropoff_coordinates,
+        lazy='raise',
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f'path(id={self.id}, '
+            f'pickup_id={self.pickup_id}, dropoff={self.dropoff}, '
+            f'created_at={self.created_at}, updated_at={self.updated_at})'
+        )
