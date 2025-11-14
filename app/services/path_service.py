@@ -9,7 +9,7 @@ from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
 class PathService:
     def __init__(
         self,
-        repository: PathRepository = Depends(PathRepository),
+        repository: PathRepository = Depends(),
     ) -> None:
         self.repository = repository
 
