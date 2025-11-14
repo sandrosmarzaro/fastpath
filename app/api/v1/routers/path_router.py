@@ -5,9 +5,9 @@ from fastapi import APIRouter, Body, Depends, status
 
 from app.schemas.examples.path_example import PathExample
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
-from app.services.path_service import PathService, get_path_service
+from app.services.path_service import PathService
 
-PathServices = Annotated[PathService, Depends(get_path_service)]
+PathServices = Annotated[PathService, Depends(PathService)]
 
 router = APIRouter(
     prefix='/api/v1/paths',
@@ -41,10 +41,6 @@ async def create_path(
 @router.delete(
     '/{path_id}',
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={
-        204: {'description': ''},
-        404: {'description': ''},
-    },
 )
 async def delete_path(
     path_id: UUID,

@@ -2,15 +2,15 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 
-from app.repositories.path_repository import (
-    PathRepository,
-    get_path_repository,
-)
+from app.repositories.path_repository import PathRepository
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
 
 
 class PathService:
-    def __init__(self, repository: PathRepository) -> None:
+    def __init__(
+        self,
+        repository: PathRepository = Depends(PathRepository),
+    ) -> None:
         self.repository = repository
 
     async def get_all_paths(self) -> PathResponseList:
@@ -30,9 +30,3 @@ class PathService:
         if path is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         return await self.repository.delete(path)
-
-
-def get_path_service(
-    repository: PathRepository = Depends(get_path_repository),
-) -> PathService:
-    return PathService(repository)

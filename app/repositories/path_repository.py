@@ -12,7 +12,10 @@ from app.models.path_model import PathModel
 
 
 class PathRepository:
-    def __init__(self, db_session: AsyncSession) -> None:
+    def __init__(
+        self,
+        db_session: AsyncSession = Depends(get_session),
+    ) -> None:
         self.db_session = db_session
 
     async def create(self, path: dict[str, Any]) -> PathModel:
@@ -69,9 +72,3 @@ class PathRepository:
     async def delete(self, path: PathModel) -> None:
         await self.db_session.delete(path)
         await self.db_session.commit()
-
-
-def get_path_repository(
-    db_session: AsyncSession = Depends(get_session),
-) -> PathRepository:
-    return PathRepository(db_session)
