@@ -11,7 +11,7 @@ class CoordinatesBase(BaseModel):
     @field_validator('lat', 'lng')
     @classmethod
     def round_coordinates(cls, v: float) -> float:
-        return round(v, 6)
+        return round(v, 7)
 
 
 class CoordinatesCreate(CoordinatesBase):
