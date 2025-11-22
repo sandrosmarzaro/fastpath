@@ -1,8 +1,10 @@
+from http import HTTPStatus
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Body, Depends
 
+from app.exceptions.erros import ContentError, NotFoundError
 from app.schemas.examples.path_example import PathExample
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
 from app.services.path_service import PathService
@@ -12,17 +14,32 @@ PathServices = Annotated[PathService, Depends()]
 router = APIRouter(
     prefix='/api/v1/paths',
     tags=['paths'],
+    responses={
+        HTTPStatus.UNPROCESSABLE_CONTENT: {
+            'description': HTTPStatus.UNPROCESSABLE_CONTENT.description,
+            'model': ContentError.schema(),
+        },
+    },
 )
 
 
-@router.get('/', status_code=status.HTTP_200_OK)
+@router.get('/', status_code=HTTPStatus.OK)
 async def get_paths(
     service: PathServices,
 ) -> PathResponseList:
     return await service.get_all_paths()
 
 
-@router.get('/{path_id}', status_code=status.HTTP_200_OK)
+@router.get(
+    '/{path_id}',
+    status_code=HTTPStatus.OK,
+    responses={
+        HTTPStatus.NOT_FOUND: {
+            'description': HTTPStatus.NOT_FOUND.description,
+            'model': NotFoundError.schema(),
+        },
+    },
+)
 async def get_path(
     path_id: UUID,
     service: PathServices,
@@ -30,7 +47,7 @@ async def get_path(
     return await service.get_path_by_id(path_id)
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED)
+@router.post('/', status_code=HTTPStatus.CREATED)
 async def create_path(
     service: PathServices,
     path: Annotated[PathCreate, Body(openapi_examples=PathExample)],
@@ -40,7 +57,13 @@ async def create_path(
 
 @router.delete(
     '/{path_id}',
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=HTTPStatus.NO_CONTENT,
+    responses={
+        HTTPStatus.NOT_FOUND: {
+            'description': HTTPStatus.NOT_FOUND.description,
+            'model': NotFoundError.schema(),
+        },
+    },
 )
 async def delete_path(
     path_id: UUID,

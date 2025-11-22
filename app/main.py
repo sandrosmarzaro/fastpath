@@ -7,6 +7,10 @@ from app.exceptions.exception_handler import add_exceptions_handler
 
 tags_metadata = [
     {
+        'name': 'health_check',
+        'description': 'API integrity',
+    },
+    {
         'name': 'paths',
         'description': 'calculated the fast path',
     },
