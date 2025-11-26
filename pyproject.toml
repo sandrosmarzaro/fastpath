@@ -15,6 +15,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.5.0",
     "pytest>=9.0.1",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
@@ -35,3 +36,5 @@ test = { cmd="pytest", help="run all tests"}
 post_test = "coverage html"
 
 cover = { cmd="coverage report", help="show code coverage"}
+
+commit = { cmd="pre-commit run --all-files", help="runs pre commit"}
