@@ -23,3 +23,8 @@ repos:
         types_or: [ python, pyi ]
       - id: ruff-format
         types_or: [ python, pyi ]
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.407
+    hooks:
+      - id: pyright
