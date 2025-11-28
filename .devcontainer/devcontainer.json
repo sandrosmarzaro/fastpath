@@ -1,0 +1,44 @@
+{
+    "name": "FastPath Dev",
+    "workspaceFolder": "/app",
+    "dockerComposeFile": "./docker-compose-dev.yaml",
+    "service": "api",
+    "forwardPorts": [
+        3000,
+        5432
+    ],
+    "portsAttributes": {
+        "8000": {
+            "label": "FastAPI"
+        },
+        "5432": {
+            "label": "PostgreSQL"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "terminal.integrated.defaultProfile.linux": "bash",
+            "extensions": [
+                "njpwerner.autodocstring",
+                "ms-python.autopep8",
+                "alefragnani.Bookmarks",
+                "markis.code-coverage",
+                "ms-azuretools.vscode-containers",
+                "ms-vscode-remote.remote-containers",
+                "usernamehw.errorlens",
+                "tamasfe.even-better-toml",
+                "donjayamanne.githistory",
+                "github.vscode-github-actions",
+                "GitHub.copilot-chat",
+                "eamodio.gitlens",
+                "ms-python.isort",
+                "ms-python.python",
+                "WolfiesHorizon.python-auto-venv",
+                "ms-python.debugpy",
+                "charliermarsh.ruff",
+                "Gruntfuggly.todo-tree",
+                "redhat.vscode-yaml"
+            ]
+        }
+    }
+}
