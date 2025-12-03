@@ -2,6 +2,9 @@ services:
   api:
     build: .
     container_name: api
+    volumes:
+      - .:/app
+      - /app/.venv
     ports:
       - 8000:${API_PORT}
     env_file:
