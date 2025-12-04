@@ -3,6 +3,7 @@ from uuid import UUID
 
 import httpx
 from fastapi import Depends
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from app.core.settings import settings
 from app.exceptions.erros import NotFoundError
@@ -43,13 +44,66 @@ class PathService:
         coords = [f'{path.pickup.lng},{path.pickup.lat}']
         coords.extend(f'{coord.lng},{coord.lat}' for coord in path.dropoff)
         coords_url = ';'.join(coords)
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 url=f'{base_url}{coords_url}',
                 params={'annotations': 'duration,distance'},
             )
             response.raise_for_status()
-        db_path = await self.repository.create(path.model_dump())
+        durantion_matrix = response.json()['durations']
+
+        optmization_seconds = 10
+        vehicles_number = 1
+        pickup_index = 0
+        manager = pywrapcp.RoutingIndexManager(
+            len(durantion_matrix),
+            vehicles_number,
+            pickup_index,
+        )
+        routing = pywrapcp.RoutingModel(manager)
+
+        def __cost_function(from_index: int, to_index: int) -> int:
+            return int(
+                durantion_matrix[manager.IndexToNode(from_index)][
+                    manager.IndexToNode(to_index)
+                ]
+            )
+
+        transit_callback_index = routing.RegisterTransitCallback(
+            __cost_function
+        )
+        routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+
+        search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+        search_parameters.first_solution_strategy = (
+            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+        )
+        search_parameters.local_search_metaheuristic = (
+            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+        )
+        search_parameters.time_limit.seconds = optmization_seconds
+
+        solution = routing.SolveWithParameters(search_parameters)
+        optimal_route = []
+        if not solution:
+            optimal_route = list(range(len(durantion_matrix)))
+        else:
+            index = routing.Start(0)
+            while not routing.IsEnd(index):
+                optimal_route.append(manager.IndexToNode(index))
+                index = solution.Value(routing.NextVar(index))
+
+        reordered_dropoffs = [
+            path.dropoff[i - 1] for i in optimal_route if i > 0
+        ]
+        path_data = path.model_dump()
+        path_data['dropoff'] = [
+            dropoff.model_dump() if hasattr(dropoff, 'model_dump') else dropoff
+            for dropoff in reordered_dropoffs
+        ]
+
+        db_path = await self.repository.create(path_data)
         return PathResponse.model_validate(db_path)
 
     async def delete_path(self, path_id: UUID) -> None:
