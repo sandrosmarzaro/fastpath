@@ -2,40 +2,36 @@ from http import HTTPStatus
 
 import pytest
 from fastapi.testclient import TestClient
+from respx import Route
 
 
 class TestPaths:
     BASE_URI = '/api/v1/paths'
 
-    def test_create_path_sucessfull(self, client: TestClient) -> None:
-        new_path = {
-            'pickup': {'lat': 12.1234567, 'lng': 123.1234567},
-            'dropoff': [
-                {'lat': 12.1234567, 'lng': 123.1234567},
-                {'lat': 12.1234567, 'lng': 123.1234567},
-            ],
-        }
-        response = client.post(self.BASE_URI, json=new_path)
+    def test_create_path_sucessfull(
+        self,
+        client: TestClient,
+        path_request: dict,
+        osrm_response: Route,  # noqa: ARG002
+    ) -> None:
+        response = client.post(self.BASE_URI, json=path_request)
         data = response.json()
 
         assert response.status_code == HTTPStatus.CREATED
         assert data['pickup']['lat'] == pytest.approx(
-            new_path['pickup']['lat'],
+            path_request['pickup']['lat'],
         )
         assert data['pickup']['lng'] == pytest.approx(
-            new_path['pickup']['lng'],
+            path_request['pickup']['lng'],
         )
-        assert len(data['dropoff']) == len(new_path['dropoff'])
+        assert len(data['dropoff']) == len(path_request['dropoff'])
 
-    def test_create_bad_format_path(self, client: TestClient) -> None:
-        new_path = {
-            'pickup': {'lat': 'wrong-location', 'lng': 123.1234567},
-            'dropoff': [
-                {'lat': 12.1234567, 'lng': 123.1234567},
-                {'lat': 12.1234567, 'lng': 123.1234567},
-            ],
-        }
-        response = client.post(self.BASE_URI, json=new_path)
+    def test_create_bad_format_path(
+        self,
+        client: TestClient,
+        wrong_path_request: dict,
+    ) -> None:
+        response = client.post(self.BASE_URI, json=wrong_path_request)
 
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 

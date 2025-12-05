@@ -14,5 +14,6 @@ testpaths = [
     'app/tests/'
 ]
 filterwarnings = [
-    'ignore::DeprecationWarning:testcontainers.*'
+    'ignore::DeprecationWarning:testcontainers.*',
+    'ignore::DeprecationWarning:importlib._bootstrap',
 ]
