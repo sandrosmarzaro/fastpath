@@ -17,11 +17,12 @@ from testcontainers.postgres import PostgresContainer
 from app.core.database import get_session
 from app.core.settings import settings
 from app.main import app
+from app.models.path_model import PathModel
 from app.models.table_model import TableModel
 from app.tests.factories.coordinates_factory import (
     CoordinatesRequestFactory,
 )
-from app.tests.factories.path_factory import PathRequestFactory
+from app.tests.factories.path_factory import PathFactory, PathRequestFactory
 
 
 @pytest.fixture(scope='session')
@@ -89,3 +90,12 @@ def osrm_response(respx_mock: MockRouter) -> Route:
     return respx_mock.get(url__startswith=settings.OSRM_URL).mock(
         return_value=Response(HTTPStatus.OK, json=response)
     )
+
+
+@pytest_asyncio.fixture
+async def path(session: AsyncSession) -> PathModel:
+    new_path = PathFactory()
+    session.add(new_path)
+    await session.commit()
+    await session.refresh(new_path)
+    return new_path

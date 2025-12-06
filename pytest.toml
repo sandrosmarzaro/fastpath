@@ -2,7 +2,7 @@
 minversion = '9.0'
 console_output_style = 'times'
 addopts = [
-    '-v', # Increase verbosity
+    '-vv', # Increase verbosity
     '-x', # Exit instantly on first error or failed test
     '-s', # Shortcut for --capture=no
     '--cov=app',
