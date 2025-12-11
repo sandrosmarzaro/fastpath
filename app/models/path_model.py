@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.coordinates_model import CoordinatesModel
 from app.models.table_model import TableModel
+from app.models.user_model import UserModel
 
 dropoff_coordinates = Table(
     'dropoff_coordinates',
@@ -17,6 +18,14 @@ dropoff_coordinates = Table(
 class PathModel(TableModel):
     __tablename__ = 'paths'
 
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey('users.id'),
+        nullable=False,
+    )
+    user: Mapped[UserModel] = relationship(
+        back_populates='paths',
+        lazy='raise',
+    )
     pickup_id: Mapped[UUID] = mapped_column(
         ForeignKey('coordinates.id'),
         nullable=False,
@@ -32,7 +41,7 @@ class PathModel(TableModel):
 
     def __repr__(self) -> str:
         return (
-            f'path(id={self.id}, '
+            f'path(id={self.id}, user_id(id={self.user_id}, '
             f'pickup_id={self.pickup_id}, dropoff={self.dropoff}, '
             f'created_at={self.created_at}, updated_at={self.updated_at})'
         )
