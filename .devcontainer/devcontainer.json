@@ -5,7 +5,8 @@
     "service": "api",
     "forwardPorts": [
         3000,
-        5432
+        5432,
+        5000
     ],
     "portsAttributes": {
         "8000": {
@@ -13,11 +14,15 @@
         },
         "5432": {
             "label": "PostgreSQL"
+        },
+        "5000": {
+            "label": "Open Source Routing Machine"
         }
     },
+    "postStartCommand": "alembic upgrade head",
     "customizations": {
         "vscode": {
-            "terminal.integrated.defaultProfile.linux": "bash",
+            "terminal.integrated.defaultProfile.linux": "zsh",
             "extensions": [
                 "njpwerner.autodocstring",
                 "ms-python.autopep8",
