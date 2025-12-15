@@ -22,9 +22,9 @@ class PaginationFilters(FiltersParamsBase):
     )
 
 
-class SortEnum(int, Enum):
-    ASC = 1
-    DESC = 0
+class SortEnum(str, Enum):
+    ASC = 'asc'
+    DESC = 'desc'
 
 
 class PaginationSortingFilters(PaginationFilters):

@@ -63,7 +63,9 @@ class PathRepository:
     async def search_all(
         self, skip: int, limit: int, order_by: str, arranging: SortEnum
     ) -> Sequence[PathModel]:
-        orderned_by = asc(order_by) if arranging else desc(order_by)
+        orderned_by = (
+            asc(order_by) if arranging == SortEnum.ASC else desc(order_by)
+        )
         result = await self.db_session.execute(
             select(PathModel)
             .join(PathModel.pickup)
