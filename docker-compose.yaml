@@ -45,9 +45,9 @@ services:
     image: osrm/osrm-backend:v5.25.0
     container_name: osrm
     volumes:
-    - ${PWD}/osrm_data:/osrm_data
+      - ${PWD}/osrm_data:/osrm_data
     ports:
-    - 5000:${OSRM_PORT}
+      - 5000:${OSRM_PORT}
     command: "osrm-routed --algorithm mld /osrm_data/${OSRM_MAP}.osrm"
 
 volumes:
