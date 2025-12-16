@@ -1,7 +1,11 @@
 services:
   api:
-    build: .
+    build:
+      context: .
+      network: host
     container_name: api
+    networks:
+      - app-network
     volumes:
       - .:/app
       - /app/.venv
@@ -27,6 +31,8 @@ services:
   db:
     image: postgres:18-alpine
     container_name: db
+    networks:
+      - app-network
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -44,11 +50,17 @@ services:
   osrm:
     image: osrm/osrm-backend:v5.25.0
     container_name: osrm
+    networks:
+      - app-network
     volumes:
       - ${PWD}/osrm_data:/osrm_data
     ports:
       - 5000:${OSRM_PORT}
     command: "osrm-routed --algorithm mld /osrm_data/${OSRM_MAP}.osrm"
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   pg_data:
