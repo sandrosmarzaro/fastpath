@@ -11,7 +11,9 @@ dependencies = [
     "ortools>=9.11",
     "protobuf>=4.25.1,<6.0",
     "psycopg[binary]>=3.2.13",
+    "pwdlib[argon2]>=0.3.0",
     "pydantic-settings>=2.11.0",
+    "pyjwt>=2.10.1",
     "sqlalchemy[asyncio]>=2.0.44",
     "uuid6>=2025.0.1",
 ]
