@@ -1,11 +1,12 @@
 from http import HTTPStatus
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
 from app.core.settings import settings
+from app.services.user_service import get_current_user
 
-router = APIRouter(tags=['root'])
+router = APIRouter(tags=['root'], dependencies=[Depends(get_current_user)])
 
 
 @router.get('/')

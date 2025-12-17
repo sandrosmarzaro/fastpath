@@ -4,23 +4,31 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 
-from app.exceptions.erros import ContentError, NotFoundError
+from app.exceptions.erros import ContentError, ForbiddenError, NotFoundError
 from app.schemas.examples.path_example import PathExample
 from app.schemas.filters_params_schema import (
     PaginationSortingFilters as Filters,
 )
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
+from app.schemas.user_schema import UserResponse
 from app.services.path_service import PathService
+from app.services.user_service import get_current_user
 
 PathServices = Annotated[PathService, Depends()]
+CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/paths',
     tags=['paths'],
+    dependencies=[Depends(get_current_user)],
     responses={
         HTTPStatus.UNPROCESSABLE_CONTENT: {
             'description': HTTPStatus.UNPROCESSABLE_CONTENT.description,
             'model': ContentError.schema(),
+        },
+        HTTPStatus.FORBIDDEN: {
+            'description': HTTPStatus.FORBIDDEN.description,
+            'model': ForbiddenError.schema(),
         },
     },
 )
@@ -29,9 +37,11 @@ router = APIRouter(
 @router.get('/', status_code=HTTPStatus.OK)
 async def get_paths(
     service: PathServices,
+    user: CurrentUser,
     filters: Annotated[Filters, Query()],
 ) -> PathResponseList:
-    return await service.get_all_paths(
+    return await service.get_all_paths_by_user(
+        user,
         filters.skip,
         filters.limit,
         filters.order_by,
@@ -52,16 +62,18 @@ async def get_paths(
 async def get_path(
     path_id: UUID,
     service: PathServices,
+    user: CurrentUser,
 ) -> PathResponse:
-    return await service.get_path_by_id(path_id)
+    return await service.get_path_by_id(path_id, user)
 
 
 @router.post('/', status_code=HTTPStatus.CREATED)
 async def create_path(
     service: PathServices,
+    user: CurrentUser,
     path: Annotated[PathCreate, Body(openapi_examples=PathExample)],
 ) -> PathResponse:
-    return await service.create_path(path)
+    return await service.create_path(user, path)
 
 
 @router.delete(
@@ -76,6 +88,7 @@ async def create_path(
 )
 async def delete_path(
     path_id: UUID,
+    user: CurrentUser,
     service: PathServices,
 ) -> None:
-    return await service.delete_path(path_id)
+    return await service.delete_path(path_id, user)

@@ -1,7 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.routers import health_check_router, path_router, root_router
+from app.api.v1.routers import (
+    auth_router,
+    health_check_router,
+    path_router,
+    root_router,
+    user_router,
+)
 from app.core.settings import settings
 from app.exceptions.exception_handler import add_exceptions_handler
 
@@ -10,6 +16,14 @@ tags_metadata = [
     {
         'name': 'health_check',
         'description': 'API integrity',
+    },
+    {
+        'name': 'users',
+        'description': 'user necessary to create paths',
+    },
+    {
+        'name': 'auth',
+        'description': 'login with user to access resources',
     },
     {
         'name': 'paths',
@@ -51,3 +65,5 @@ add_exceptions_handler(app)
 app.include_router(health_check_router.router)
 app.include_router(path_router.router)
 app.include_router(root_router.router)
+app.include_router(user_router.router)
+app.include_router(auth_router.router)

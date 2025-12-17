@@ -10,10 +10,12 @@ class BaseError(Exception):
         self,
         message: str | dict,
         status_code: int = HTTPStatus.INTERNAL_SERVER_ERROR,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
         self.status_code = status_code
+        self.headers = headers
 
     @classmethod
     @lru_cache
@@ -39,5 +41,36 @@ class ContentError(BaseError):
         self,
         message: str = HTTPStatus.UNPROCESSABLE_CONTENT.description,
         status_code: int = HTTPStatus.UNPROCESSABLE_CONTENT,
+    ) -> None:
+        super().__init__(message, status_code)
+
+
+class UnauthorizedError(BaseError):
+    def __init__(
+        self,
+        message: str = HTTPStatus.UNAUTHORIZED.description,
+        status_code: int = HTTPStatus.UNAUTHORIZED,
+    ) -> None:
+        super().__init__(
+            message,
+            status_code,
+            headers={'WWW-Authenticate': 'Bearer'},
+        )
+
+
+class ConflictError(BaseError):
+    def __init__(
+        self,
+        message: str = HTTPStatus.CONFLICT.description,
+        status_code: int = HTTPStatus.CONFLICT,
+    ) -> None:
+        super().__init__(message, status_code)
+
+
+class ForbiddenError(BaseError):
+    def __init__(
+        self,
+        message: str = HTTPStatus.FORBIDDEN.description,
+        status_code: int = HTTPStatus.FORBIDDEN,
     ) -> None:
         super().__init__(message, status_code)

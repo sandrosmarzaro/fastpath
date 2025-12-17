@@ -17,6 +17,10 @@ class __Settings(BaseSettings):
     )
     OSRM_URL: str = os.getenv('OSRM_URL', 'http://localhost:5000/')
     API_URL: str = os.getenv('API_URL', 'http://localhost:8000/')
+    TOKEN_TYPE: str = os.getenv('TOKEN_TYPE', 'Bearer')
+    TOKEN_EXPIRE_MINUTES: int = int(os.getenv('TOKEN_EXPIRE_MINUTES', '60'))
+    TOKEN_SECRET_KEY: str = os.getenv('TOKEN_SECRET_KEY', 'secret-key')
+    TOKEN_ALGORITHM: str = os.getenv('TOKEN_ALGORITHM', 'HS256')
 
 
 @lru_cache

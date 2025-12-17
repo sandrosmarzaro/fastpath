@@ -20,6 +20,7 @@ class PathCreate(PathBase):
 
 class PathResponse(PathBase):
     id: UUID
+    user_id: UUID
     pickup: CoordinatesResponse
     dropoff: list[CoordinatesResponse]
     created_at: datetime

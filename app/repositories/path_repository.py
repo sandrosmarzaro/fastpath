@@ -60,8 +60,13 @@ class PathRepository:
         )
         return result.scalar_one_or_none()
 
-    async def search_all(
-        self, skip: int, limit: int, order_by: str, arranging: SortEnum
+    async def search_all_by_user(
+        self,
+        user: UUID,
+        skip: int,
+        limit: int,
+        order_by: str,
+        arranging: SortEnum,
     ) -> Sequence[PathModel]:
         orderned_by = (
             asc(order_by) if arranging == SortEnum.ASC else desc(order_by)
@@ -73,6 +78,7 @@ class PathRepository:
                 selectinload(PathModel.pickup),
                 selectinload(PathModel.dropoff),
             )
+            .where(PathModel.user_id == user)
             .offset(skip)
             .limit(limit)
             .order_by(orderned_by)
