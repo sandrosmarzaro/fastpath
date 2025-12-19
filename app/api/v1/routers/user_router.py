@@ -1,15 +1,19 @@
 from http import HTTPStatus
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends
 
-from app.exceptions.erros import ConflictError, ContentError, UnauthorizedError
-from app.schemas.examples.user_example import UserExample
-from app.schemas.filters_params_schema import (
-    PaginationSortingFilters as Filters,
+from app.api.v1.routers.auth_router import CurrentUser
+from app.exceptions.erros import (
+    ConflictError,
+    ContentError,
+    ForbiddenError,
+    UnauthorizedError,
 )
-from app.schemas.user_schema import UserCreate, UserResponse, UserResponseList
-from app.services.user_service import UserService, get_current_user
+from app.schemas.examples.user_example import UserExample
+from app.schemas.user_schema import UserCreate, UserResponse
+from app.services.user_service import UserService
 
 UserServices = Annotated[UserService, Depends()]
 
@@ -20,10 +24,6 @@ router = APIRouter(
         HTTPStatus.UNPROCESSABLE_CONTENT: {
             'description': HTTPStatus.UNPROCESSABLE_CONTENT.description,
             'model': ContentError.schema(),
-        },
-        HTTPStatus.UNAUTHORIZED: {
-            'description': HTTPStatus.UNAUTHORIZED.description,
-            'model': UnauthorizedError.schema(),
         },
     },
 )
@@ -47,15 +47,20 @@ async def create_user(
 
 
 @router.get(
-    '/', status_code=HTTPStatus.OK, dependencies=[Depends(get_current_user)]
+    '/{user_id}',
+    status_code=HTTPStatus.OK,
+    responses={
+        HTTPStatus.UNAUTHORIZED: {
+            'description': HTTPStatus.UNAUTHORIZED.description,
+            'model': UnauthorizedError.schema(),
+        },
+        HTTPStatus.FORBIDDEN: {
+            'description': HTTPStatus.FORBIDDEN.description,
+            'model': ForbiddenError.schema(),
+        },
+    },
 )
-async def get_users(
-    service: UserServices,
-    filters: Annotated[Filters, Query()],
-) -> UserResponseList:
-    return await service.get_all_users(
-        filters.skip,
-        filters.limit,
-        filters.order_by,
-        filters.arranging,
-    )
+async def get_user(
+    service: UserServices, user_id: UUID, current_user: CurrentUser
+) -> UserResponse:
+    return await service.get_user(user_id, current_user)

@@ -29,7 +29,3 @@ class UserPatch(BaseModel):
     username: str | None = None
     email: EmailStr | None = None
     password: str | None = None
-
-
-class UserResponseList(BaseModel):
-    data: list[UserResponse]

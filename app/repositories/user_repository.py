@@ -34,14 +34,12 @@ class UserRepository:
         )
         return result.scalars().all()
 
-    async def search_by_username(self, username: str) -> UserModel | None:
+    async def search_by_field(
+        self,
+        field: str,
+        value: Any,  # noqa: ANN401
+    ) -> UserModel | None:
         result = await self.db_session.execute(
-            select(UserModel).where(UserModel.username == username)
-        )
-        return result.scalar_one_or_none()
-
-    async def search_by_email(self, email: str) -> UserModel | None:
-        result = await self.db_session.execute(
-            select(UserModel).where(UserModel.email == email)
+            select(UserModel).where(getattr(UserModel, field) == value)
         )
         return result.scalar_one_or_none()

@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -8,12 +9,12 @@ from pwdlib import PasswordHash
 from app.core.settings import settings
 from app.exceptions.erros import (
     ConflictError,
+    ForbiddenError,
     NotFoundError,
     UnauthorizedError,
 )
 from app.repositories.user_repository import UserRepository
-from app.schemas.filters_params_schema import SortEnum
-from app.schemas.user_schema import UserCreate, UserResponse, UserResponseList
+from app.schemas.user_schema import UserCreate, UserResponse
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
 
@@ -28,12 +29,14 @@ class UserService:
 
     async def create_user(self, user: UserCreate) -> UserResponse:
         user_data = user.model_dump()
-        same_username = await self.repository.search_by_username(
-            user_data['username']
+        same_username = await self.repository.search_by_field(
+            'username', user_data['username']
         )
         if same_username:
             raise ConflictError(message='username already in use.')
-        same_email = await self.repository.search_by_email(user_data['email'])
+        same_email = await self.repository.search_by_field(
+            'email', user_data['email']
+        )
         if same_email:
             raise ConflictError(message='email already in use.')
 
@@ -43,19 +46,12 @@ class UserService:
         db_user = await self.repository.create(user_data)
         return UserResponse.model_validate(db_user)
 
-    async def get_all_users(
-        self,
-        skip: int,
-        limit: int,
-        order_by: str,
-        arranging: SortEnum,
-    ) -> UserResponseList:
-        db_users = await self.repository.search_all(
-            skip, limit, order_by, arranging
-        )
-        return UserResponseList(
-            data=[UserResponse.model_validate(user) for user in db_users]
-        )
+    async def get_user(
+        self, user_id: UUID, user: UserResponse
+    ) -> UserResponse:
+        if user.id != user_id:
+            raise ForbiddenError
+        return user
 
     @classmethod
     def __get_hashed_password(cls, plain_password: str) -> str:
@@ -82,7 +78,9 @@ async def get_current_user(
             message='could not validate credentials'
         ) from e
 
-    user_db = await service.repository.search_by_username(username_sub)
+    user_db = await service.repository.search_by_field(
+        'username', username_sub
+    )
     if user_db is None:
         raise NotFoundError
 
