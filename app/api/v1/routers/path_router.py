@@ -4,7 +4,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Query
 
-from app.exceptions.erros import ContentError, ForbiddenError, NotFoundError
+from app.exceptions.erros import (
+    ContentError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+)
 from app.schemas.examples.path_example import PathExample
 from app.schemas.filters_params_schema import (
     PaginationSortingFilters as Filters,
@@ -25,6 +30,10 @@ router = APIRouter(
         HTTPStatus.UNPROCESSABLE_CONTENT: {
             'description': HTTPStatus.UNPROCESSABLE_CONTENT.description,
             'model': ContentError.schema(),
+        },
+        HTTPStatus.UNAUTHORIZED: {
+            'description': HTTPStatus.UNAUTHORIZED.description,
+            'model': UnauthorizedError.schema(),
         },
         HTTPStatus.FORBIDDEN: {
             'description': HTTPStatus.FORBIDDEN.description,
