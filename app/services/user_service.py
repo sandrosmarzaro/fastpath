@@ -18,6 +18,7 @@ from app.models.user_model import UserModel
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import (
     UserCreate,
+    UserPatch,
     UserResponse,
     UserUpdate,
 )
@@ -73,8 +74,32 @@ class UserService:
             updated_user.password
         )
         try:
-            updated_model = await self.repository.update(current_user)
+            updated_model = await self.repository.add_commit_refresh_changes(
+                current_user
+            )
             return UserResponse.model_validate(updated_model)
+        except IntegrityError as e:
+            raise ConflictError(
+                message='username or email already in use.'
+            ) from e
+
+    async def patch_user(
+        self,
+        user_id: UUID,
+        patched_user: UserPatch,
+        current_user: UserModel,
+    ) -> UserResponse:
+        if current_user.id != user_id:
+            raise ForbiddenError
+
+        for key, value in patched_user.model_dump(exclude_unset=True).items():
+            setattr(current_user, key, value)
+
+        try:
+            patched_model = await self.repository.add_commit_refresh_changes(
+                current_user
+            )
+            return UserResponse.model_validate(patched_model)
         except IntegrityError as e:
             raise ConflictError(
                 message='username or email already in use.'

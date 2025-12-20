@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends
@@ -8,12 +8,14 @@ from app.exceptions.erros import (
     ConflictError,
     ContentError,
     ForbiddenError,
+    NotFoundError,
     UnauthorizedError,
 )
 from app.models.user_model import UserModel
 from app.schemas.examples.user_example import UserExample
 from app.schemas.user_schema import (
     UserCreate,
+    UserPatch,
     UserResponse,
     UserUpdate,
 )
@@ -32,6 +34,21 @@ router = APIRouter(
         },
     },
 )
+
+one_resource_responses: dict[int | str, dict[str, Any]] = {
+    HTTPStatus.UNAUTHORIZED: {
+        'description': HTTPStatus.UNAUTHORIZED.description,
+        'model': UnauthorizedError.schema(),
+    },
+    HTTPStatus.FORBIDDEN: {
+        'description': HTTPStatus.FORBIDDEN.description,
+        'model': ForbiddenError.schema(),
+    },
+    HTTPStatus.NOT_FOUND: {
+        'description': HTTPStatus.NOT_FOUND.description,
+        'model': NotFoundError.schema(),
+    },
+}
 
 
 @router.post(
@@ -54,16 +71,7 @@ async def create_user(
 @router.get(
     '/{user_id}',
     status_code=HTTPStatus.OK,
-    responses={
-        HTTPStatus.UNAUTHORIZED: {
-            'description': HTTPStatus.UNAUTHORIZED.description,
-            'model': UnauthorizedError.schema(),
-        },
-        HTTPStatus.FORBIDDEN: {
-            'description': HTTPStatus.FORBIDDEN.description,
-            'model': ForbiddenError.schema(),
-        },
-    },
+    responses=one_resource_responses,
 )
 async def get_user(
     service: InjectService, user_id: UUID, current_user: CurrentUser
@@ -74,16 +82,7 @@ async def get_user(
 @router.put(
     '/{user_id}',
     status_code=HTTPStatus.OK,
-    responses={
-        HTTPStatus.UNAUTHORIZED: {
-            'description': HTTPStatus.UNAUTHORIZED.description,
-            'model': UnauthorizedError.schema(),
-        },
-        HTTPStatus.FORBIDDEN: {
-            'description': HTTPStatus.FORBIDDEN.description,
-            'model': ForbiddenError.schema(),
-        },
-    },
+    responses=one_resource_responses,
 )
 async def update_user(
     service: InjectService,
@@ -92,3 +91,17 @@ async def update_user(
     current_user: CurrentUser,
 ) -> UserResponse:
     return await service.update_user(user_id, updated_user, current_user)
+
+
+@router.patch(
+    '/{user_id}',
+    status_code=HTTPStatus.OK,
+    responses=one_resource_responses,
+)
+async def patch_user(
+    service: InjectService,
+    user_id: UUID,
+    patched_user: UserPatch,
+    current_user: CurrentUser,
+) -> UserResponse:
+    return await service.patch_user(user_id, patched_user, current_user)

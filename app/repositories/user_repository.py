@@ -26,13 +26,6 @@ class UserRepository:
         user_model = UserModel(**user)
         return await self.add_commit_refresh_changes(user_model)
 
-    async def update(self, user: UserModel) -> UserModel:
-        user.username = user.username
-        user.email = user.email
-        user.password = user.password
-
-        return await self.add_commit_refresh_changes(user)
-
     async def search_all(
         self, skip: int, limit: int, order_by: str, arranging: SortEnum
     ) -> Sequence[UserModel]:
