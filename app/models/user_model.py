@@ -23,5 +23,5 @@ class UserModel(TableModel):
 
     def __repr__(self) -> str:
         return (
-            f'user(id={self.id}, username={self.username}, email={self.email}'
+            f'user(id={self.id}, username={self.username}, email={self.email})'
         )

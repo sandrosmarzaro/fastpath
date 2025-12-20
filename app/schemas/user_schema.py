@@ -21,6 +21,12 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CurrentUserResponse(UserResponse):
+    password: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserUpdate(UserCreate):
     pass
 

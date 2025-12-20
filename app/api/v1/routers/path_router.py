@@ -19,7 +19,7 @@ from app.schemas.user_schema import UserResponse
 from app.services.path_service import PathService
 from app.services.user_service import get_current_user
 
-PathServices = Annotated[PathService, Depends()]
+InjectService = Annotated[PathService, Depends()]
 CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
 
 router = APIRouter(
@@ -45,7 +45,7 @@ router = APIRouter(
 
 @router.get('/', status_code=HTTPStatus.OK)
 async def get_paths(
-    service: PathServices,
+    service: InjectService,
     user: CurrentUser,
     filters: Annotated[Filters, Query()],
 ) -> PathResponseList:
@@ -70,7 +70,7 @@ async def get_paths(
 )
 async def get_path(
     path_id: UUID,
-    service: PathServices,
+    service: InjectService,
     user: CurrentUser,
 ) -> PathResponse:
     return await service.get_path_by_id(path_id, user)
@@ -78,7 +78,7 @@ async def get_path(
 
 @router.post('/', status_code=HTTPStatus.CREATED)
 async def create_path(
-    service: PathServices,
+    service: InjectService,
     user: CurrentUser,
     path: Annotated[PathCreate, Body(openapi_examples=PathExample)],
 ) -> PathResponse:
@@ -98,6 +98,6 @@ async def create_path(
 async def delete_path(
     path_id: UUID,
     user: CurrentUser,
-    service: PathServices,
+    service: InjectService,
 ) -> None:
     return await service.delete_path(path_id, user)

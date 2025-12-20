@@ -6,13 +6,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.exceptions.erros import ContentError, UnauthorizedError
 from app.schemas.token_schema import TokenResponse
-from app.schemas.user_schema import UserResponse
+from app.schemas.user_schema import CurrentUserResponse
 from app.services.auth_service import AuthService
 from app.services.user_service import get_current_user
 
-AuthServices = Annotated[AuthService, Depends()]
+InjectService = Annotated[AuthService, Depends()]
 OAuthForm = Annotated[OAuth2PasswordRequestForm, Depends()]
-CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
+CurrentUser = Annotated[CurrentUserResponse, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/auth',
@@ -32,13 +32,13 @@ router = APIRouter(
 
 @router.post('/token', status_code=HTTPStatus.OK)
 async def create_access_token(
-    service: AuthServices, form: OAuthForm
+    service: InjectService, form: OAuthForm
 ) -> TokenResponse:
     return await service.create_token_by_form(form)
 
 
 @router.post('/refresh_token', status_code=HTTPStatus.OK)
 async def refresh_access_token(
-    service: AuthServices, user: CurrentUser
+    service: InjectService, user: CurrentUser
 ) -> TokenResponse:
     return service.create_token_by_sub(user.username)

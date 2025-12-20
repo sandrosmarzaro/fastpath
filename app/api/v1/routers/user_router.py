@@ -4,7 +4,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends
 
-from app.api.v1.routers.auth_router import CurrentUser
 from app.exceptions.erros import (
     ConflictError,
     ContentError,
@@ -12,10 +11,16 @@ from app.exceptions.erros import (
     UnauthorizedError,
 )
 from app.schemas.examples.user_example import UserExample
-from app.schemas.user_schema import UserCreate, UserResponse
-from app.services.user_service import UserService
+from app.schemas.user_schema import (
+    CurrentUserResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
+from app.services.user_service import UserService, get_current_user
 
-UserServices = Annotated[UserService, Depends()]
+InjectService = Annotated[UserService, Depends()]
+CurrentUser = Annotated[CurrentUserResponse, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/users',
@@ -40,7 +45,7 @@ router = APIRouter(
     },
 )
 async def create_user(
-    service: UserServices,
+    service: InjectService,
     user: Annotated[UserCreate, Body(openapi_examples=UserExample)],
 ) -> UserResponse:
     return await service.create_user(user)
@@ -61,6 +66,29 @@ async def create_user(
     },
 )
 async def get_user(
-    service: UserServices, user_id: UUID, current_user: CurrentUser
+    service: InjectService, user_id: UUID, current_user: CurrentUser
 ) -> UserResponse:
     return await service.get_user(user_id, current_user)
+
+
+@router.put(
+    '/{user_id}',
+    status_code=HTTPStatus.OK,
+    responses={
+        HTTPStatus.UNAUTHORIZED: {
+            'description': HTTPStatus.UNAUTHORIZED.description,
+            'model': UnauthorizedError.schema(),
+        },
+        HTTPStatus.FORBIDDEN: {
+            'description': HTTPStatus.FORBIDDEN.description,
+            'model': ForbiddenError.schema(),
+        },
+    },
+)
+async def update_user(
+    service: InjectService,
+    user_id: UUID,
+    updated_user: UserUpdate,
+    current_user: CurrentUser,
+) -> UserResponse:
+    return await service.update_user(user_id, updated_user, current_user)

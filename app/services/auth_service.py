@@ -35,7 +35,9 @@ class AuthService:
     async def create_token_by_form(
         self, form: OAuth2PasswordRequestForm
     ) -> TokenResponse:
-        user_db = await self.user_repository.search_by_username(form.username)
+        user_db = await self.user_repository.search_by_field(
+            'username', form.username
+        )
         if user_db is None:
             raise UnauthorizedError(
                 message='username or password doesnt match'

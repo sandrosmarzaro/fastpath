@@ -5,6 +5,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jwt import DecodeError, ExpiredSignatureError, decode
 from pwdlib import PasswordHash
+from sqlalchemy.exc import IntegrityError
 
 from app.core.settings import settings
 from app.exceptions.erros import (
@@ -14,7 +15,12 @@ from app.exceptions.erros import (
     UnauthorizedError,
 )
 from app.repositories.user_repository import UserRepository
-from app.schemas.user_schema import UserCreate, UserResponse
+from app.schemas.user_schema import (
+    CurrentUserResponse,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
 
@@ -53,6 +59,28 @@ class UserService:
             raise ForbiddenError
         return user
 
+    async def update_user(
+        self,
+        user_id: UUID,
+        updated_user: UserUpdate,
+        current_user: CurrentUserResponse,
+    ) -> UserResponse:
+        if current_user.id != user_id:
+            raise ForbiddenError
+
+        current_user.username = updated_user.username
+        current_user.email = updated_user.email
+        current_user.password = self.__get_hashed_password(
+            updated_user.password
+        )
+        try:
+            updated_model = await self.repository.update(current_user)
+            return UserResponse.model_validate(updated_model)
+        except IntegrityError as e:
+            raise ConflictError(
+                message='username or email already in use.'
+            ) from e
+
     @classmethod
     def __get_hashed_password(cls, plain_password: str) -> str:
         return pwd_context.hash(plain_password)
@@ -65,7 +93,7 @@ class UserService:
 async def get_current_user(
     service: Annotated[UserService, Depends()],
     token: str = Depends(oauth2_scheme),
-) -> UserResponse:
+) -> CurrentUserResponse:
     try:
         payload = decode(
             token, settings.TOKEN_SECRET_KEY, settings.TOKEN_ALGORITHM
@@ -84,4 +112,4 @@ async def get_current_user(
     if user_db is None:
         raise NotFoundError
 
-    return UserResponse.model_validate(user_db)
+    return CurrentUserResponse.model_validate(user_db)
