@@ -10,17 +10,17 @@ from app.exceptions.erros import (
     NotFoundError,
     UnauthorizedError,
 )
+from app.models.user_model import UserModel
 from app.schemas.examples.path_example import PathExample
 from app.schemas.filters_params_schema import (
     PaginationSortingFilters as Filters,
 )
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
-from app.schemas.user_schema import UserResponse
 from app.services.path_service import PathService
 from app.services.user_service import get_current_user
 
 InjectService = Annotated[PathService, Depends()]
-CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/paths',

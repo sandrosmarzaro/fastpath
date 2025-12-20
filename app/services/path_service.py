@@ -7,10 +7,10 @@ from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from app.core.settings import settings
 from app.exceptions.erros import ForbiddenError, NotFoundError
+from app.models.user_model import UserModel
 from app.repositories.path_repository import PathRepository
 from app.schemas.filters_params_schema import SortEnum
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
-from app.schemas.user_schema import UserResponse
 
 
 class PathService:
@@ -22,7 +22,7 @@ class PathService:
 
     async def get_all_paths_by_user(
         self,
-        user: UserResponse,
+        user: UserModel,
         skip: int,
         limit: int,
         order_by: str,
@@ -36,7 +36,7 @@ class PathService:
         )
 
     async def get_path_by_id(
-        self, path_id: UUID, user: UserResponse
+        self, path_id: UUID, user: UserModel
     ) -> PathResponse:
         db_path = await self.repository.search(path_id)
         if db_path is None:
@@ -46,7 +46,7 @@ class PathService:
         return PathResponse.model_validate(db_path)
 
     async def create_path(
-        self, user: UserResponse, path: PathCreate
+        self, user: UserModel, path: PathCreate
     ) -> PathResponse:
         base_url = settings.OSRM_URL + 'table/v1/driving/'
         coords = [f'{path.pickup.lng},{path.pickup.lat}']
@@ -115,7 +115,7 @@ class PathService:
         db_path = await self.repository.create(path_data)
         return PathResponse.model_validate(db_path)
 
-    async def delete_path(self, path_id: UUID, user: UserResponse) -> None:
+    async def delete_path(self, path_id: UUID, user: UserModel) -> None:
         path = await self.repository.search(path_id)
         if path is None:
             raise NotFoundError
