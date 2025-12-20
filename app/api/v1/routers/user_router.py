@@ -10,9 +10,9 @@ from app.exceptions.erros import (
     ForbiddenError,
     UnauthorizedError,
 )
+from app.models.user_model import UserModel
 from app.schemas.examples.user_example import UserExample
 from app.schemas.user_schema import (
-    CurrentUserResponse,
     UserCreate,
     UserResponse,
     UserUpdate,
@@ -20,7 +20,7 @@ from app.schemas.user_schema import (
 from app.services.user_service import UserService, get_current_user
 
 InjectService = Annotated[UserService, Depends()]
-CurrentUser = Annotated[CurrentUserResponse, Depends(get_current_user)]
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/users',

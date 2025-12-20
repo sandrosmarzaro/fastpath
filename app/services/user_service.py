@@ -14,9 +14,9 @@ from app.exceptions.erros import (
     NotFoundError,
     UnauthorizedError,
 )
+from app.models.user_model import UserModel
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import (
-    CurrentUserResponse,
     UserCreate,
     UserResponse,
     UserUpdate,
@@ -40,6 +40,7 @@ class UserService:
         )
         if same_username:
             raise ConflictError(message='username already in use.')
+
         same_email = await self.repository.search_by_field(
             'email', user_data['email']
         )
@@ -52,18 +53,16 @@ class UserService:
         db_user = await self.repository.create(user_data)
         return UserResponse.model_validate(db_user)
 
-    async def get_user(
-        self, user_id: UUID, user: UserResponse
-    ) -> UserResponse:
+    async def get_user(self, user_id: UUID, user: UserModel) -> UserResponse:
         if user.id != user_id:
             raise ForbiddenError
-        return user
+        return UserResponse.model_validate(user)
 
     async def update_user(
         self,
         user_id: UUID,
         updated_user: UserUpdate,
-        current_user: CurrentUserResponse,
+        current_user: UserModel,
     ) -> UserResponse:
         if current_user.id != user_id:
             raise ForbiddenError
@@ -93,7 +92,7 @@ class UserService:
 async def get_current_user(
     service: Annotated[UserService, Depends()],
     token: str = Depends(oauth2_scheme),
-) -> CurrentUserResponse:
+) -> UserModel:
     try:
         payload = decode(
             token, settings.TOKEN_SECRET_KEY, settings.TOKEN_ALGORITHM
@@ -112,4 +111,4 @@ async def get_current_user(
     if user_db is None:
         raise NotFoundError
 
-    return CurrentUserResponse.model_validate(user_db)
+    return user_db

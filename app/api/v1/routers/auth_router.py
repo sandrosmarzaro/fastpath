@@ -5,14 +5,14 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.exceptions.erros import ContentError, UnauthorizedError
+from app.models.user_model import UserModel
 from app.schemas.token_schema import TokenResponse
-from app.schemas.user_schema import CurrentUserResponse
 from app.services.auth_service import AuthService
 from app.services.user_service import get_current_user
 
 InjectService = Annotated[AuthService, Depends()]
 OAuthForm = Annotated[OAuth2PasswordRequestForm, Depends()]
-CurrentUser = Annotated[CurrentUserResponse, Depends(get_current_user)]
+CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 
 router = APIRouter(
     prefix='/api/v1/auth',
