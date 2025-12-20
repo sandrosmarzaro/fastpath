@@ -105,3 +105,16 @@ async def patch_user(
     current_user: CurrentUser,
 ) -> UserResponse:
     return await service.patch_user(user_id, patched_user, current_user)
+
+
+@router.delete(
+    '/{user_id}',
+    status_code=HTTPStatus.NO_CONTENT,
+    responses=one_resource_responses,
+)
+async def delete_user(
+    service: InjectService,
+    user_id: UUID,
+    current_user: CurrentUser,
+) -> None:
+    return await service.delete_user(user_id, current_user)

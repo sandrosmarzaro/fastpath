@@ -46,3 +46,7 @@ class UserRepository:
             select(UserModel).where(getattr(UserModel, field) == value)
         )
         return result.scalar_one_or_none()
+
+    async def delete(self, user: UserModel) -> None:
+        await self.db_session.delete(user)
+        await self.db_session.commit()

@@ -111,6 +111,14 @@ class UserService:
                 message='username or email already in use.'
             ) from e
 
+    async def delete_user(
+        self, user_id: UUID, current_user: UserModel
+    ) -> None:
+        if current_user.id != user_id:
+            raise ForbiddenError
+
+        return await self.repository.delete(current_user)
+
     @classmethod
     def __get_hashed_password(cls, plain_password: str) -> str:
         return pwd_context.hash(plain_password)
