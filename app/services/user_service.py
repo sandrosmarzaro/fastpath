@@ -92,7 +92,13 @@ class UserService:
         if current_user.id != user_id:
             raise ForbiddenError
 
-        for key, value in patched_user.model_dump(exclude_unset=True).items():
+        patched_data = patched_user.model_dump(exclude_unset=True)
+        if 'password' in patched_data:
+            patched_data['password'] = self.__get_hashed_password(
+                patched_data['password']
+            )
+
+        for key, value in patched_data.items():
             setattr(current_user, key, value)
 
         try:
