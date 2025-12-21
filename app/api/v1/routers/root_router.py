@@ -23,10 +23,10 @@ router = APIRouter(
 def redirect_root_to_swagger_or_health_check() -> RedirectResponse:
     if settings.DEBUG:
         return RedirectResponse(
-            url=settings.API_URL + 'api/v1/docs',
+            url='/api/v1/docs',
             status_code=HTTPStatus.TEMPORARY_REDIRECT,
         )
     return RedirectResponse(
-        url=settings.API_URL + 'api/v1/',
+        url='/api/v1/',
         status_code=HTTPStatus.TEMPORARY_REDIRECT,
     )
