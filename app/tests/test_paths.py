@@ -15,9 +15,14 @@ class TestPaths:
     def test_create_path_sucessful(
         self,
         client: TestClient,
+        access_token: str,
         path_request: dict,
     ) -> None:
-        response = client.post(self.BASE_URI, json=path_request)
+        response = client.post(
+            self.BASE_URI,
+            headers={'Authorization': f'Bearer {access_token}'},
+            json=path_request,
+        )
         data = response.json()
 
         assert response.status_code == HTTPStatus.CREATED
@@ -32,14 +37,24 @@ class TestPaths:
     def test_create_bad_format_path(
         self,
         client: TestClient,
+        access_token: str,
         wrong_path_request: dict,
     ) -> None:
-        response = client.post(self.BASE_URI, json=wrong_path_request)
+        response = client.post(
+            self.BASE_URI,
+            headers={'Authorization': f'Bearer {access_token}'},
+            json=wrong_path_request,
+        )
 
         assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
-    def test_get_paths_should_return_empty(self, client: TestClient) -> None:
-        response = client.get(self.BASE_URI)
+    def test_get_paths_should_return_empty(
+        self, client: TestClient, access_token: str
+    ) -> None:
+        response = client.get(
+            self.BASE_URI,
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
 
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {'data': []}
@@ -47,41 +62,57 @@ class TestPaths:
     def test_get_paths_should_return_one(
         self,
         client: TestClient,
+        access_token: str,
         path: PathModel,
     ) -> None:
-        response = client.get(self.BASE_URI)
+        response = client.get(
+            self.BASE_URI,
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
         path_schema = PathResponse.model_validate(path).model_dump(mode='json')
 
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {'data': [path_schema]}
 
     def test_get_one_path_sucessful(
-        self, client: TestClient, path: PathModel
+        self, client: TestClient, path: PathModel, access_token: str
     ) -> None:
-        response = client.get(f'{self.BASE_URI}/{path.id}')
+        response = client.get(
+            f'{self.BASE_URI}/{path.id}',
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
         path_schema = PathResponse.model_validate(path).model_dump(mode='json')
 
         assert response.status_code == HTTPStatus.OK
         assert response.json() == path_schema
 
     def test_get_one_path_should_return_not_found(
-        self, client: TestClient
+        self, client: TestClient, access_token: str
     ) -> None:
-        response = client.get(f'{self.BASE_URI}/{uuid7()}')
+        response = client.get(
+            f'{self.BASE_URI}/{uuid7()}',
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
 
         assert response.status_code == HTTPStatus.NOT_FOUND
 
     def test_should_delete_path_sucessful(
-        self, client: TestClient, path: PathModel
+        self, client: TestClient, path: PathModel, access_token: str
     ) -> None:
-        response = client.delete(f'{self.BASE_URI}/{path.id}')
+        response = client.delete(
+            f'{self.BASE_URI}/{path.id}',
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
 
         assert response.status_code == HTTPStatus.NO_CONTENT
         assert response.content == b''
 
     def test_should_return_not_found_when_delete_no_existis_path(
-        self, client: TestClient
+        self, client: TestClient, access_token: str
     ) -> None:
-        response = client.delete(f'{self.BASE_URI}/{uuid7()}')
+        response = client.delete(
+            f'{self.BASE_URI}/{uuid7()}',
+            headers={'Authorization': f'Bearer {access_token}'},
+        )
 
         assert response.status_code == HTTPStatus.NOT_FOUND
