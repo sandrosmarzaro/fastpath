@@ -20,10 +20,13 @@ from app.core.settings import settings
 from app.main import app
 from app.models.path_model import PathModel
 from app.models.table_model import TableModel
+from app.models.user_model import UserModel
+from app.services.user_service import UserService
 from app.tests.factories.coordinates_factory import (
     CoordinatesRequestFactory,
 )
 from app.tests.factories.path_factory import PathFactory, PathRequestFactory
+from app.tests.factories.user_factory import UserFactory
 
 
 @pytest.fixture(scope='session')
@@ -37,7 +40,7 @@ async def session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, Any]:
     async with engine.begin() as conn:
         await conn.run_sync(TableModel.metadata.create_all)
 
-    async with AsyncSession(engine) as session:
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
     async with engine.begin() as conn:
@@ -94,8 +97,9 @@ def osrm_response(respx_mock: MockRouter) -> Route:
 
 
 @pytest_asyncio.fixture
-async def path(session: AsyncSession) -> PathModel:
+async def path(session: AsyncSession, user: UserModel) -> PathModel:
     new_path = PathFactory()
+    new_path.user_id = user.id
     session.add(new_path)
     await session.commit()
     await session.refresh(new_path)
@@ -106,3 +110,26 @@ async def path(session: AsyncSession) -> PathModel:
 def prod_settings(monkeypatch: MonkeyPatch) -> MonkeyPatch:
     monkeypatch.setattr(settings, 'DEBUG', False)
     return monkeypatch
+
+
+@pytest_asyncio.fixture
+async def user(session: AsyncSession) -> UserModel:
+    password = 'P4ssw@rd'  # noqa: S105
+    new_user = UserFactory(password=UserService.get_hashed_password(password))
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
+    new_user.clean_password = password
+    return new_user
+
+
+@pytest_asyncio.fixture
+async def access_token(client: TestClient, user: UserModel) -> str:
+    response = client.post(
+        '/api/v1/auth/token',
+        data={
+            'username': user.username,
+            'password': user.clean_password,  # type: ignore[attr-defined]
+        },
+    )
+    return response.json()['access_token']
