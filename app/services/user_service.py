@@ -48,9 +48,7 @@ class UserService:
         if same_email:
             raise ConflictError(message='email already in use.')
 
-        user_data['password'] = self.__get_hashed_password(
-            user_data['password']
-        )
+        user_data['password'] = self.get_hashed_password(user_data['password'])
         db_user = await self.repository.create(user_data)
         return UserResponse.model_validate(db_user)
 
@@ -70,9 +68,7 @@ class UserService:
 
         current_user.username = updated_user.username
         current_user.email = updated_user.email
-        current_user.password = self.__get_hashed_password(
-            updated_user.password
-        )
+        current_user.password = self.get_hashed_password(updated_user.password)
         try:
             updated_model = await self.repository.add_commit_refresh_changes(
                 current_user
@@ -94,7 +90,7 @@ class UserService:
 
         patched_data = patched_user.model_dump(exclude_unset=True)
         if 'password' in patched_data:
-            patched_data['password'] = self.__get_hashed_password(
+            patched_data['password'] = self.get_hashed_password(
                 patched_data['password']
             )
 
@@ -120,7 +116,7 @@ class UserService:
         return await self.repository.delete(current_user)
 
     @classmethod
-    def __get_hashed_password(cls, plain_password: str) -> str:
+    def get_hashed_password(cls, plain_password: str) -> str:
         return pwd_context.hash(plain_password)
 
     @classmethod
