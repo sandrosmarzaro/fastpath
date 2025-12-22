@@ -124,6 +124,20 @@ async def user(session: AsyncSession) -> UserModel:
 
 
 @pytest_asyncio.fixture
+async def users(session: AsyncSession) -> tuple[UserModel, UserModel]:
+    password = 'P4ssw@rd'  # noqa: S105
+    new_users = UserFactory.build_batch(
+        2, password=UserService.get_hashed_password(password)
+    )
+    session.add_all(new_users)
+    await session.commit()
+    for user in new_users:
+        user.clean_password = password
+        await session.refresh(user)
+    return new_users[0], new_users[1]
+
+
+@pytest_asyncio.fixture
 async def access_token(client: TestClient, user: UserModel) -> str:
     response = client.post(
         '/api/v1/auth/token',
@@ -133,3 +147,24 @@ async def access_token(client: TestClient, user: UserModel) -> str:
         },
     )
     return response.json()['access_token']
+
+
+@pytest_asyncio.fixture
+async def access_tokens(
+    client: TestClient, users: tuple[UserModel, UserModel]
+) -> tuple[str, str]:
+    def create_token(user: UserModel) -> str:
+        response = client.post(
+            '/api/v1/auth/token',
+            data={
+                'username': user.username,
+                'password': user.clean_password,  # type: ignore[attr-defined]
+            },
+        )
+        return response.json()['access_token']
+
+    first_user, second_user = users
+    first_token = create_token(first_user)
+    second_token = create_token(second_user)
+
+    return first_token, second_token
