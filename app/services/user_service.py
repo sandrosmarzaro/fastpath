@@ -133,7 +133,7 @@ async def get_current_user(
             token, settings.TOKEN_SECRET_KEY, settings.TOKEN_ALGORITHM
         )
         username_sub = payload.get('sub')
-        if username_sub is None:
+        if not username_sub:
             raise UnauthorizedError(message='could not validate credentials')
     except (DecodeError, ExpiredSignatureError) as e:
         raise UnauthorizedError(
