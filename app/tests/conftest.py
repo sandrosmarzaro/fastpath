@@ -21,6 +21,8 @@ from app.main import app
 from app.models.path_model import PathModel
 from app.models.table_model import TableModel
 from app.models.user_model import UserModel
+from app.repositories.user_repository import UserRepository
+from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 from app.tests.factories.coordinates_factory import (
     CoordinatesRequestFactory,
@@ -168,3 +170,22 @@ async def access_tokens(
     second_token = create_token(second_user)
 
     return first_token, second_token
+
+
+@pytest_asyncio.fixture
+async def user_repository(session: AsyncSession) -> UserRepository:
+    return UserRepository(db_session=session)
+
+
+@pytest_asyncio.fixture
+async def user_service(user_repository: UserRepository) -> UserService:
+    return UserService(repository=user_repository)
+
+
+@pytest_asyncio.fixture
+async def auth_service(
+    user_repository: UserRepository, user_service: UserService
+) -> AuthService:
+    return AuthService(
+        user_repository=user_repository, user_service=user_service
+    )

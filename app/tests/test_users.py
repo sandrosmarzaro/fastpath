@@ -5,6 +5,7 @@ from uuid6 import uuid7
 
 from app.models.user_model import UserModel
 from app.schemas.user_schema import UserResponse
+from app.services.auth_service import AuthService
 
 
 class TestUsers:
@@ -258,3 +259,56 @@ class TestUsers:
         )
 
         assert response.status_code == HTTPStatus.FORBIDDEN
+
+    def test_invalid_current_user_without_sub(
+        self,
+        client: TestClient,
+        user: UserModel,
+        auth_service: AuthService,
+    ) -> None:
+        token_response = auth_service.create_token_by_sub(sub='')
+        token_without_sub = token_response.access_token
+        response = client.get(
+            f'{self.BASE_URI}/{user.id}',
+            headers={'Authorization': f'Bearer {token_without_sub}'},
+        )
+
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
+        assert response.json() == {
+            'error': 'UnauthorizedError',
+            'detail': 'could not validate credentials',
+        }
+
+    def test_nonexistent_current_user_failure(
+        self,
+        client: TestClient,
+        user: UserModel,
+        auth_service: AuthService,
+    ) -> None:
+        token_response = auth_service.create_token_by_sub(sub='nonexistent')
+        nonexistent_token = token_response.access_token
+        response = client.get(
+            f'{self.BASE_URI}/{user.id}',
+            headers={'Authorization': f'Bearer {nonexistent_token}'},
+        )
+
+        assert response.status_code == HTTPStatus.NOT_FOUND
+
+    def test_changed_password_was_hashed(
+        self,
+        client: TestClient,
+        user: UserModel,
+        access_token: str,
+    ) -> None:
+        client.patch(
+            f'{self.BASE_URI}/{user.id}',
+            headers={'Authorization': f'Bearer {access_token}'},
+            json={'password': 'password'},
+        )
+        response = client.post(
+            'api/v1/auth/token',
+            headers={'Authorization': f'Bearer {access_token}'},
+            data={'username': user.username, 'password': 'password'},
+        )
+        assert response.status_code == HTTPStatus.OK
+        assert 'access_token' in response.json()
