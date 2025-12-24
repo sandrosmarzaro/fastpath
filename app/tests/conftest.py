@@ -108,6 +108,19 @@ async def path(session: AsyncSession, user: UserModel) -> PathModel:
     return new_path
 
 
+@pytest_asyncio.fixture
+async def paths(
+    session: AsyncSession, users: tuple[UserModel, UserModel]
+) -> tuple[PathModel, PathModel]:
+    first_user, _ = users
+    new_paths = PathFactory.build_batch(size=2, user_id=first_user.id)
+    session.add_all(new_paths)
+    await session.commit()
+    for path in new_paths:
+        await session.refresh(path)
+    return new_paths[0], new_paths[1]
+
+
 @pytest.fixture
 def prod_settings(monkeypatch: MonkeyPatch) -> MonkeyPatch:
     monkeypatch.setattr(settings, 'DEBUG', False)

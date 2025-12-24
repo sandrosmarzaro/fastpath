@@ -116,3 +116,33 @@ class TestPaths:
         )
 
         assert response.status_code == HTTPStatus.NOT_FOUND
+
+    def test_should_error_when_get_path_of_other_user(
+        self,
+        client: TestClient,
+        access_tokens: tuple[str, str],
+        paths: tuple[PathModel, PathModel],
+    ) -> None:
+        first_path, _ = paths
+        _, second_token = access_tokens
+        response = client.get(
+            f'{self.BASE_URI}/{first_path.id}',
+            headers={'Authorization': f'Bearer {second_token}'},
+        )
+
+        assert response.status_code == HTTPStatus.FORBIDDEN
+
+    def test_should_error_when_delete_path_of_other_user(
+        self,
+        client: TestClient,
+        access_tokens: tuple[str, str],
+        paths: tuple[PathModel, PathModel],
+    ) -> None:
+        first_path, _ = paths
+        _, second_token = access_tokens
+        response = client.delete(
+            f'{self.BASE_URI}/{first_path.id}',
+            headers={'Authorization': f'Bearer {second_token}'},
+        )
+
+        assert response.status_code == HTTPStatus.FORBIDDEN
