@@ -3,7 +3,6 @@ from uuid import UUID
 
 import httpx
 from fastapi import Depends
-from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from app.core.settings import settings
 from app.exceptions.erros import ForbiddenError, NotFoundError
@@ -11,6 +10,7 @@ from app.models.user_model import UserModel
 from app.repositories.path_repository import PathRepository
 from app.schemas.filters_params_schema import SortEnum
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
+from app.solvers.ortools_solver import ORToolsSolver
 
 
 class PathService:
@@ -61,46 +61,7 @@ class PathService:
             response.raise_for_status()
         durantion_matrix = response.json()['durations']
 
-        optmization_seconds = 10
-        vehicles_number = 1
-        pickup_index = 0
-        manager = pywrapcp.RoutingIndexManager(
-            len(durantion_matrix),
-            vehicles_number,
-            pickup_index,
-        )
-        routing = pywrapcp.RoutingModel(manager)
-
-        def __cost_function(from_index: int, to_index: int) -> int:
-            return int(
-                durantion_matrix[manager.IndexToNode(from_index)][
-                    manager.IndexToNode(to_index)
-                ]
-            )
-
-        transit_callback_index = routing.RegisterTransitCallback(
-            __cost_function
-        )
-        routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
-
-        search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
-        search_parameters.local_search_metaheuristic = (
-            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-        )
-        search_parameters.time_limit.seconds = optmization_seconds
-
-        solution = routing.SolveWithParameters(search_parameters)
-        optimal_route = []
-        if not solution:
-            optimal_route = list(range(len(durantion_matrix)))
-        else:
-            index = routing.Start(0)
-            while not routing.IsEnd(index):
-                optimal_route.append(manager.IndexToNode(index))
-                index = solution.Value(routing.NextVar(index))
+        optimal_route = ORToolsSolver.solve(durantion_matrix)
 
         reordered_dropoffs = [
             path.dropoff[i - 1] for i in optimal_route if i > 0
