@@ -19,9 +19,11 @@ class UserModel(TableModel):
     paths: Mapped[list['PathModel']] = relationship(
         back_populates='user',
         lazy='raise',
+        cascade='all, delete-orphan',
     )
 
     def __repr__(self) -> str:
         return (
-            f'user(id={self.id}, username={self.username}, email={self.email})'
+            f'user(id={self.id}, username={self.username}, email={self.email} '
+            'created_at={self.created_at}, updated_at={self.updated_at})'
         )
