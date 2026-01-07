@@ -23,5 +23,5 @@ class CoordinatesModel(TableModel):
     def __repr__(self) -> str:
         return (
             f'coordinates(id={self.id}, lat={self.lat}, lng={self.lng}, '
-            'created_at={self.created_at}, updated_at={self.updated_at})'
+            f'created_at={self.created_at}, updated_at={self.updated_at})'
         )

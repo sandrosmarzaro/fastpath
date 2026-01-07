@@ -25,5 +25,5 @@ class UserModel(TableModel):
     def __repr__(self) -> str:
         return (
             f'user(id={self.id}, username={self.username}, email={self.email} '
-            'created_at={self.created_at}, updated_at={self.updated_at})'
+            f'created_at={self.created_at}, updated_at={self.updated_at})'
         )
