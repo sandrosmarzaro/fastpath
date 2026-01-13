@@ -21,6 +21,7 @@ class __Settings(BaseSettings):
     TOKEN_EXPIRE_MINUTES: int = int(os.getenv('TOKEN_EXPIRE_MINUTES', '60'))
     TOKEN_SECRET_KEY: str = os.getenv('TOKEN_SECRET_KEY', 'secret-key')
     TOKEN_ALGORITHM: str = os.getenv('TOKEN_ALGORITHM', 'HS256')
+    H3_RESOLUTION: int = int(os.getenv('H3_RESOLUTION', '9'))
 
 
 @lru_cache

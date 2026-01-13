@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.17.1",
     "fastapi[standard]>=0.121.0",
+    "h3>=4.4.1",
     "httpx>=0.28.1",
     "ortools>=9.11",
     "protobuf>=4.25.1,<6.0",
