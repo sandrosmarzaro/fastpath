@@ -12,6 +12,7 @@ from app.repositories.path_repository import PathRepository
 from app.schemas.coordinates_schema import CoordinatesCreate
 from app.schemas.filters_params_schema import SortEnum
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
+from app.services.cache_service import CacheService
 from app.solvers.ortools_solver import ORToolsSolver
 
 
@@ -19,8 +20,10 @@ class PathService:
     def __init__(
         self,
         repository: Annotated[PathRepository, Depends()],
+        cache: Annotated[CacheService, Depends()],
     ) -> None:
         self.repository = repository
+        self.cache = cache
 
     async def get_all_paths_by_user(
         self,
@@ -48,21 +51,33 @@ class PathService:
         return PathResponse.model_validate(db_path)
 
     async def create_path(
-        self, user: UserModel, path: PathCreate
+        self, cache: CacheService, user: UserModel, path: PathCreate
     ) -> PathResponse:
-        pairs_cost = {}
-        missing_pairs = []
         coords = [path.pickup, *path.dropoff]
+        all_pairs = []
+        all_cache_keys = []
+
         for i, coord1 in enumerate(coords):
             for coord2 in coords[i + 1 :]:
-                key = self._make_pair_cache_key(coord1, coord2)
-                # TODO @sandrosmarzaro: retrieve from cache
-                # 001
-                cached_cost = ...
-                if cached_cost:
-                    pairs_cost[(coord1, coord2)] = int(cached_cost)
-                else:
-                    missing_pairs.append((coord1, coord2))
+                pair = (coord1, coord2)
+                all_pairs.append(pair)
+                all_cache_keys.append(
+                    self._make_pair_cache_key(coord1, coord2)
+                )
+
+        cached_values = await cache.get_many('dist', all_cache_keys)
+
+        pairs_cost = {}
+        missing_pairs = []
+
+        for pair, cache_key in zip(all_pairs, all_cache_keys, strict=False):
+            cached_cost = (
+                cached_values.get(cache_key) if cached_values else None
+            )
+            if cached_cost is not None:
+                pairs_cost[pair] = float(cached_cost)
+            else:
+                missing_pairs.append(pair)
 
         if missing_pairs:
             formatted_coords = [
@@ -72,17 +87,33 @@ class PathService:
             ]
             coords_url = ';'.join(formatted_coords)
             base_url = settings.OSRM_URL + 'table/v1/driving/'
+
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     url=f'{base_url}{coords_url}',
                     params={'annotations': 'duration,distance'},
                 )
                 response.raise_for_status()
-            missing_cost_matrix = response.json()['durations']
-            # TODO @sandrosmarzaro: store in cache
-            # 002
 
-        matrix = self._build_cost_matrix(pairs_cost, missing_cost_matrix)
+            missing_cost_matrix = response.json()['durations']
+
+            await self.cache.set_many(
+                prefix='dist',
+                keys=[
+                    self._make_pair_cache_key(pair[0], pair[1])
+                    for pair in missing_pairs
+                ],
+                values=[
+                    str(missing_cost_matrix[i * 2 + j])
+                    for i in range(len(missing_pairs))
+                    for j in range(2)
+                ],
+            )
+
+            for i, pair in enumerate(missing_pairs):
+                pairs_cost[pair] = missing_cost_matrix[i * 2 + 1]
+
+        matrix = self._build_cost_matrix(pairs_cost, coords)
 
         optimal_route = ORToolsSolver.solve(matrix)
 
@@ -102,7 +133,7 @@ class PathService:
     def _convert_coord_to_h3_index(self, coord: CoordinatesCreate) -> str:
         return latlng_to_cell(coord.lat, coord.lng, settings.H3_RESOLUTION)
 
-    async def _make_pair_cache_key(
+    def _make_pair_cache_key(
         self, coord1: CoordinatesCreate, coord2: CoordinatesCreate
     ) -> str:
         index1 = self._convert_coord_to_h3_index(coord1)
@@ -111,12 +142,21 @@ class PathService:
 
     def _build_cost_matrix(
         self,
-        pairs_cost: dict[str, int],
-        missing_cost_matrix: dict[str, list[int]],
-    ) -> dict[str, list[int]]:
-        # TODO @sandrosmarzaro: implement the logic to build the full cost matrix
-        # 003
-        pass
+        pairs_cost: dict[tuple[CoordinatesCreate, CoordinatesCreate], float],
+        coords: list[CoordinatesCreate],
+    ) -> list[list[float]]:
+        n = len(coords)
+        matrix = [[0.0] * n for _ in range(n)]
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                pair = (coords[i], coords[j])
+                cost = pairs_cost.get(pair, 0.0)
+
+                matrix[i][j] = cost
+                matrix[j][i] = cost
+
+        return matrix
 
     async def delete_path(self, path_id: UUID, user: UserModel) -> None:
         path = await self.repository.search(path_id)
