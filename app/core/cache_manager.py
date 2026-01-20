@@ -29,3 +29,7 @@ class CacheManager:
         if not cls._client:
             raise RuntimeError
         return cls._client
+
+
+def get_cache_client() -> Redis:
+    return CacheManager.get_client()

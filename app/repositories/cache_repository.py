@@ -4,12 +4,12 @@ from typing import Annotated
 from fastapi import Depends
 from redis.asyncio import Redis
 
-from app.core.cache_manager import CacheManager
+from app.core.cache_manager import get_cache_client
 
 
 class CacheRepository:
     def __init__(
-        self, cache_client: Annotated[Redis, Depends(CacheManager.get_client)]
+        self, cache_client: Annotated[Redis, Depends(get_cache_client)]
     ) -> None:
         self.cache_client = cache_client
 
