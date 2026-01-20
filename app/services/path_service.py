@@ -84,10 +84,21 @@ class PathService:
                 missing_pair_indices.append(pair)
 
         if missing_pairs:
+            unique_coords_map = {}
+            for coord1, coord2 in missing_pairs:
+                h3_1 = self._convert_coord_to_h3_index(coord1)
+                h3_2 = self._convert_coord_to_h3_index(coord2)
+                unique_coords_map[h3_1] = coord1
+                unique_coords_map[h3_2] = coord2
+
+            unique_coords = list(unique_coords_map.values())
+            coord_to_index = {
+                self._convert_coord_to_h3_index(c): i
+                for i, c in enumerate(unique_coords)
+            }
+
             formatted_coords = [
-                f'{coord.lng},{coord.lat}'
-                for pair in missing_pairs
-                for coord in pair
+                f'{coord.lng},{coord.lat}' for coord in unique_coords
             ]
             coords_url = ';'.join(formatted_coords)
             base_url = settings.OSRM_URL + 'table/v1/driving/'
@@ -99,30 +110,30 @@ class PathService:
                 )
                 response.raise_for_status()
 
-            missing_cost_matrix = response.json()['durations']
+            full_matrix = response.json()['durations']
+
+            cache_entries = {}
+            for i, (coord1, coord2) in enumerate(missing_pairs):
+                idx1 = coord_to_index[self._convert_coord_to_h3_index(coord1)]
+                idx2 = coord_to_index[self._convert_coord_to_h3_index(coord2)]
+                cost = full_matrix[idx1][idx2]
+
+                cache_key = self._make_pair_cache_key(coord1, coord2)
+                cache_entries[cache_key] = str(cost)
+                pairs_cost[missing_pair_indices[i]] = cost
 
             await self.cache.set_many(
                 prefix='dist',
-                keys=[
-                    self._make_pair_cache_key(pair[0], pair[1])
-                    for pair in missing_pairs
-                ],
-                values=[
-                    str(missing_cost_matrix[i * 2][i * 2 + 1])
-                    for i in range(len(missing_pairs))
-                ],
+                keys=list(cache_entries.keys()),
+                values=list(cache_entries.values()),
             )
 
-            for i, pair_idx in enumerate(missing_pair_indices):
-                pairs_cost[pair_idx] = missing_cost_matrix[i * 2][i * 2 + 1]
-
         matrix = self._build_cost_matrix(pairs_cost, len(coords))
-
         optimal_route = ORToolsSolver.solve(matrix)
-
         reordered_dropoffs = [
             path.dropoff[i - 1] for i in optimal_route if i > 0
         ]
+
         path_data = path.model_dump()
         path_data['dropoff'] = [
             dropoff.model_dump() if hasattr(dropoff, 'model_dump') else dropoff
