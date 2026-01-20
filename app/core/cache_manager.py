@@ -22,7 +22,7 @@ class CacheManager:
         if cls._pool:
             await cls._pool.disconnect()
         if cls._client:
-            await cls._client.close()
+            await cls._client.aclose()
 
     @classmethod
     def get_client(cls) -> Redis:
