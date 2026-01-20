@@ -51,24 +51,26 @@ class PathService:
         return PathResponse.model_validate(db_path)
 
     async def create_path(
-        self, cache: CacheService, user: UserModel, path: PathCreate
+        self, user: UserModel, path: PathCreate
     ) -> PathResponse:
         coords = [path.pickup, *path.dropoff]
         all_pairs = []
         all_cache_keys = []
 
         for i, coord1 in enumerate(coords):
-            for coord2 in coords[i + 1 :]:
-                pair = (coord1, coord2)
+            for j in range(i + 1, len(coords)):
+                coord2 = coords[j]
+                pair = (i, j)
                 all_pairs.append(pair)
                 all_cache_keys.append(
                     self._make_pair_cache_key(coord1, coord2)
                 )
 
-        cached_values = await cache.get_many('dist', all_cache_keys)
+        cached_values = await self.cache.get_many('dist', all_cache_keys)
 
         pairs_cost = {}
         missing_pairs = []
+        missing_pair_indices = []
 
         for pair, cache_key in zip(all_pairs, all_cache_keys, strict=False):
             cached_cost = (
@@ -77,7 +79,9 @@ class PathService:
             if cached_cost is not None:
                 pairs_cost[pair] = float(cached_cost)
             else:
-                missing_pairs.append(pair)
+                i, j = pair
+                missing_pairs.append((coords[i], coords[j]))
+                missing_pair_indices.append(pair)
 
         if missing_pairs:
             formatted_coords = [
@@ -104,16 +108,15 @@ class PathService:
                     for pair in missing_pairs
                 ],
                 values=[
-                    str(missing_cost_matrix[i * 2 + j])
+                    str(missing_cost_matrix[i * 2][i * 2 + 1])
                     for i in range(len(missing_pairs))
-                    for j in range(2)
                 ],
             )
 
-            for i, pair in enumerate(missing_pairs):
-                pairs_cost[pair] = missing_cost_matrix[i * 2 + 1]
+            for i, pair_idx in enumerate(missing_pair_indices):
+                pairs_cost[pair_idx] = missing_cost_matrix[i * 2][i * 2 + 1]
 
-        matrix = self._build_cost_matrix(pairs_cost, coords)
+        matrix = self._build_cost_matrix(pairs_cost, len(coords))
 
         optimal_route = ORToolsSolver.solve(matrix)
 
@@ -142,19 +145,14 @@ class PathService:
 
     def _build_cost_matrix(
         self,
-        pairs_cost: dict[tuple[CoordinatesCreate, CoordinatesCreate], float],
-        coords: list[CoordinatesCreate],
+        pairs_cost: dict[tuple[int, int], float],
+        n: int,
     ) -> list[list[float]]:
-        n = len(coords)
         matrix = [[0.0] * n for _ in range(n)]
 
-        for i in range(n):
-            for j in range(i + 1, n):
-                pair = (coords[i], coords[j])
-                cost = pairs_cost.get(pair, 0.0)
-
-                matrix[i][j] = cost
-                matrix[j][i] = cost
+        for (i, j), cost in pairs_cost.items():
+            matrix[i][j] = cost
+            matrix[j][i] = cost
 
         return matrix
 
