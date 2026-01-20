@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.17.1",
     "fastapi[standard]>=0.121.0",
+    "h3>=4.4.1",
     "httpx>=0.28.1",
     "ortools>=9.11",
     "protobuf>=4.25.1,<6.0",
@@ -14,6 +15,7 @@ dependencies = [
     "pwdlib[argon2]>=0.3.0",
     "pydantic-settings>=2.11.0",
     "pyjwt>=2.10.1",
+    "redis>=7.1.0",
     "sqlalchemy[asyncio]>=2.0.44",
     "uuid6>=2025.0.1",
 ]
@@ -22,6 +24,7 @@ dependencies = [
 dev = [
     "factory-boy>=3.3.3",
     "faker>=38.2.0",
+    "fakeredis>=2.33.0",
     "freezegun>=1.5.5",
     "pre-commit>=4.5.0",
     "pyright>=1.1.407",

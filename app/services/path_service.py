@@ -3,13 +3,16 @@ from uuid import UUID
 
 import httpx
 from fastapi import Depends
+from h3 import latlng_to_cell
 
 from app.core.settings import settings
 from app.exceptions.erros import ForbiddenError, NotFoundError
 from app.models.user_model import UserModel
 from app.repositories.path_repository import PathRepository
+from app.schemas.coordinates_schema import CoordinatesCreate
 from app.schemas.filters_params_schema import SortEnum
 from app.schemas.path_schema import PathCreate, PathResponse, PathResponseList
+from app.services.cache_service import CacheService
 from app.solvers.ortools_solver import ORToolsSolver
 
 
@@ -17,8 +20,10 @@ class PathService:
     def __init__(
         self,
         repository: Annotated[PathRepository, Depends()],
+        cache: Annotated[CacheService, Depends()],
     ) -> None:
         self.repository = repository
+        self.cache = cache
 
     async def get_all_paths_by_user(
         self,
@@ -48,24 +53,87 @@ class PathService:
     async def create_path(
         self, user: UserModel, path: PathCreate
     ) -> PathResponse:
-        base_url = settings.OSRM_URL + 'table/v1/driving/'
-        coords = [f'{path.pickup.lng},{path.pickup.lat}']
-        coords.extend(f'{coord.lng},{coord.lat}' for coord in path.dropoff)
-        coords_url = ';'.join(coords)
+        coords = [path.pickup, *path.dropoff]
+        all_pairs = []
+        all_cache_keys = []
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                url=f'{base_url}{coords_url}',
-                params={'annotations': 'duration,distance'},
+        for i, coord1 in enumerate(coords):
+            for j in range(i + 1, len(coords)):
+                coord2 = coords[j]
+                pair = (i, j)
+                all_pairs.append(pair)
+                all_cache_keys.append(
+                    self._make_pair_cache_key(coord1, coord2)
+                )
+
+        cached_values = await self.cache.get_many('dist', all_cache_keys)
+
+        pairs_cost = {}
+        missing_pairs = []
+        missing_pair_indices = []
+
+        for pair, cache_key in zip(all_pairs, all_cache_keys, strict=False):
+            cached_cost = (
+                cached_values.get(cache_key) if cached_values else None
             )
-            response.raise_for_status()
-        durantion_matrix = response.json()['durations']
+            if cached_cost is not None:
+                pairs_cost[pair] = float(cached_cost)
+            else:
+                i, j = pair
+                missing_pairs.append((coords[i], coords[j]))
+                missing_pair_indices.append(pair)
 
-        optimal_route = ORToolsSolver.solve(durantion_matrix)
+        if missing_pairs:
+            unique_coords_map = {}
+            for coord1, coord2 in missing_pairs:
+                h3_1 = self._convert_coord_to_h3_index(coord1)
+                h3_2 = self._convert_coord_to_h3_index(coord2)
+                unique_coords_map[h3_1] = coord1
+                unique_coords_map[h3_2] = coord2
 
+            unique_coords = list(unique_coords_map.values())
+            coord_to_index = {
+                self._convert_coord_to_h3_index(c): i
+                for i, c in enumerate(unique_coords)
+            }
+
+            formatted_coords = [
+                f'{coord.lng},{coord.lat}' for coord in unique_coords
+            ]
+            coords_url = ';'.join(formatted_coords)
+            base_url = settings.OSRM_URL + 'table/v1/driving/'
+
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=f'{base_url}{coords_url}',
+                    params={'annotations': 'duration,distance'},
+                )
+                response.raise_for_status()
+
+            full_matrix = response.json()['durations']
+
+            cache_entries = {}
+            for i, (coord1, coord2) in enumerate(missing_pairs):
+                idx1 = coord_to_index[self._convert_coord_to_h3_index(coord1)]
+                idx2 = coord_to_index[self._convert_coord_to_h3_index(coord2)]
+                cost = full_matrix[idx1][idx2]
+
+                cache_key = self._make_pair_cache_key(coord1, coord2)
+                cache_entries[cache_key] = str(cost)
+                pairs_cost[missing_pair_indices[i]] = cost
+
+            await self.cache.set_many(
+                prefix='dist',
+                keys=list(cache_entries.keys()),
+                values=list(cache_entries.values()),
+            )
+
+        matrix = self._build_cost_matrix(pairs_cost, len(coords))
+        optimal_route = ORToolsSolver.solve(matrix)
         reordered_dropoffs = [
             path.dropoff[i - 1] for i in optimal_route if i > 0
         ]
+
         path_data = path.model_dump()
         path_data['dropoff'] = [
             dropoff.model_dump() if hasattr(dropoff, 'model_dump') else dropoff
@@ -75,6 +143,29 @@ class PathService:
 
         db_path = await self.repository.create(path_data)
         return PathResponse.model_validate(db_path)
+
+    def _convert_coord_to_h3_index(self, coord: CoordinatesCreate) -> str:
+        return latlng_to_cell(coord.lat, coord.lng, settings.H3_RESOLUTION)
+
+    def _make_pair_cache_key(
+        self, coord1: CoordinatesCreate, coord2: CoordinatesCreate
+    ) -> str:
+        index1 = self._convert_coord_to_h3_index(coord1)
+        index2 = self._convert_coord_to_h3_index(coord2)
+        return f'dist:{index1}:{index2}'
+
+    def _build_cost_matrix(
+        self,
+        pairs_cost: dict[tuple[int, int], float],
+        n: int,
+    ) -> list[list[float]]:
+        matrix = [[0.0] * n for _ in range(n)]
+
+        for (i, j), cost in pairs_cost.items():
+            matrix[i][j] = cost
+            matrix[j][i] = cost
+
+        return matrix
 
     async def delete_path(self, path_id: UUID, user: UserModel) -> None:
         path = await self.repository.search(path_id)

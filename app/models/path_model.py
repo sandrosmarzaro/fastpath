@@ -34,11 +34,13 @@ class PathModel(TableModel):
         back_populates='paths',
         lazy='raise',
         cascade='all, delete-orphan',
+        single_parent=True,
     )
     dropoff: Mapped[list[CoordinatesModel]] = relationship(
         secondary=dropoff_coordinates,
         lazy='raise',
         cascade='all, delete-orphan',
+        single_parent=True,
     )
 
     def __repr__(self) -> str:

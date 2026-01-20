@@ -5,7 +5,7 @@ class ORToolsSolver:
     @classmethod
     def solve(
         cls,
-        durantion_matrix: dict[str, list[int]],
+        durantion_matrix: list[list[float]],
         optmization_seconds: int = 10,
         vehicles_number: int = 1,
         pickup_index: int = 0,

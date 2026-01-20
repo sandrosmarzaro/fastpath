@@ -16,16 +16,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cache:
+        condition: service_healthy
       osrm:
         condition: service_started
-    command: >
-      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    entrypoint: ["sh", "./entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "${API_URL}/api/v1/"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 10s
     restart: unless-stopped
 
   db:
@@ -43,9 +44,23 @@ services:
       POSTGRES_DB: ${DB_NAME}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 3
+
+  cache:
+    image: redis:8.4.0-alpine
+    container_name: cache
+    networks:
+      - app-network
+    ports:
+      - 6379:${CACHE_PORT}
+    command: redis-server --requirepass ${CACHE_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${CACHE_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   osrm:
     image: osrm/osrm-backend:v5.25.0

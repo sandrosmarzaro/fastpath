@@ -8,6 +8,7 @@ from app.api.v1.routers import (
     root_router,
     user_router,
 )
+from app.core.lifespan import lifespan
 from app.core.settings import settings
 from app.exceptions.exception_handler import add_exceptions_handler
 
@@ -50,6 +51,7 @@ app = FastAPI(
     redoc_url=None if not settings.DEBUG else '/api/v1/redoc',
     openapi_url=None if not settings.DEBUG else '/api/v1/openapi.json',
     openapi_tags=tags_metadata,
+    lifespan=lifespan,
 )
 
 app.add_middleware(

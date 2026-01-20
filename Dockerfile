@@ -25,6 +25,8 @@ RUN addgroup -S nonroot && adduser -S -G nonroot nonroot
 
 COPY --from=builder /app /app
 
+RUN chmod +x /app/entrypoint.sh 
+
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER nonroot

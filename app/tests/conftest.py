@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 from _pytest.monkeypatch import MonkeyPatch
+from fakeredis import FakeAsyncRedis
 from fastapi.testclient import TestClient
 from httpx import Response
 from respx import MockRouter, Route
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from testcontainers.postgres import PostgresContainer
 
+from app.core.cache_manager import get_cache_client
 from app.core.database import get_session
 from app.core.settings import settings
 from app.main import app
@@ -49,13 +51,26 @@ async def session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession, Any]:
         await conn.run_sync(TableModel.metadata.drop_all)
 
 
+@pytest_asyncio.fixture
+async def redis_client() -> AsyncGenerator[FakeAsyncRedis]:
+    client = FakeAsyncRedis(decode_responses=True)
+    yield client
+    await client.aclose()
+
+
 @pytest.fixture
-def client(session: AsyncSession) -> Generator[TestClient]:
+def client(
+    session: AsyncSession, redis_client: FakeAsyncRedis
+) -> Generator[TestClient]:
     def get_session_overdrive() -> AsyncSession:
         return session
 
+    def get_cache_client_override() -> FakeAsyncRedis:
+        return redis_client
+
     with TestClient(app) as client:
         app.dependency_overrides[get_session] = get_session_overdrive
+        app.dependency_overrides[get_cache_client] = get_cache_client_override
         yield client
         app.dependency_overrides.clear()
 
