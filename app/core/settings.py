@@ -26,7 +26,7 @@ class __Settings(BaseSettings):
 
     CACHE_IP: str = os.getenv('CACHE_IP', 'cache')
     CACHE_PORT: int = int(os.getenv('CACHE_PORT', '60'))
-    CACHE_PASSWORD = str = os.getenv('CACHE_PASSWORD', 'password')
+    CACHE_PASSWORD: str = os.getenv('CACHE_PASSWORD', 'password')
     CACHE_TTL_SECONDS: int = int(os.getenv('CACHE_TTL_SECONDS', '600'))
 
 
