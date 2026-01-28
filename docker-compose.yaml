@@ -18,6 +18,8 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+      otel:
+        condition: service_started
       osrm:
         condition: service_started
     entrypoint: ["sh", "./entrypoint.sh"]
@@ -72,6 +74,15 @@ services:
     ports:
       - 5000:${OSRM_PORT}
     command: "osrm-routed --algorithm mld /osrm_data/${OSRM_MAP}.osrm"
+
+  otel:
+    image: grafana/otel-lgtm:0.16.0
+    container_name: otel
+    networks:
+     - app-network
+    ports:
+      - 3000:${GRAFANA_PORT}
+      - 4317:${OTLP_GRPC_PORT}
 
 networks:
   app-network:

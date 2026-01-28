@@ -17,6 +17,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cache:
+        condition: service_healthy
+      otel:
+        condition: service_started
       osrm:
         condition: service_started
     command: sleep infinity
@@ -59,6 +63,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  otel:
+    image: grafana/otel-lgtm:0.16.0
+    container_name: otel
+    networks:
+     - app-network
+    ports:
+      - 3000:${GRAFANA_PORT}
+      - 4317:${OTLP_GRPC_PORT}
 
   osrm:
     image: osrm/osrm-backend:v5.25.0
