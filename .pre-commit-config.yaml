@@ -1,4 +1,5 @@
 fail_fast: true
+default_stages: [push]
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
@@ -9,7 +10,7 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-    -   id: check-added-large-files
+      - id: check-added-large-files
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.9.12
@@ -20,9 +21,9 @@ repos:
     rev: v0.14.3
     hooks:
       - id: ruff-check
-        types_or: [ python, pyi ]
+        types_or: [python, pyi]
       - id: ruff-format
-        types_or: [ python, pyi ]
+        types_or: [python, pyi]
 
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.407
