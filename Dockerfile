@@ -2,7 +2,7 @@ FROM python:3.13-alpine AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.8.21 /uv /uvx /bin/
 
-RUN apk add gcc musl-dev postgresql-dev --no-cache
+RUN apk add gcc musl-dev postgresql-dev linux-headers --no-cache
 
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
