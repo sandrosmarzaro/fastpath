@@ -11,6 +11,7 @@ class __Settings(BaseSettings):
         extra='ignore',
     )
     DEBUG: bool = True
+    LOG_LEVEL: str = 'DEBUG'
     API_URL: str = os.getenv('API_URL', 'http://localhost:8000/')
     DB_URL: str = os.getenv(
         'DB_URL',

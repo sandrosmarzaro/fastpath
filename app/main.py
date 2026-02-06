@@ -9,8 +9,10 @@ from app.api.v1.routers import (
     user_router,
 )
 from app.core.lifespan import lifespan
+from app.core.logger import create_logger_instance
 from app.core.settings import settings
 from app.exceptions.exception_handler import add_exceptions_handler
+from app.middlewares.logger_middleware import LoggerMiddleware
 
 tags_metadata = [
     {'name': 'root', 'description': 'entry endpoint'},
@@ -31,6 +33,8 @@ tags_metadata = [
         'description': 'calculated the fast path',
     },
 ]
+
+create_logger_instance()
 
 app = FastAPI(
     title='Fast Path',
@@ -61,6 +65,7 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+app.add_middleware(LoggerMiddleware)
 
 add_exceptions_handler(app)
 
