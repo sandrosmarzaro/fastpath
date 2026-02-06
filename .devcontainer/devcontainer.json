@@ -3,6 +3,7 @@
     "workspaceFolder": "/app",
     "dockerComposeFile": "./docker-compose-dev.yaml",
     "service": "api",
+    "remoteUser": "devuser",
     "forwardPorts": [
         3000,
         5432,

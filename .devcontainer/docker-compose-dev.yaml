@@ -4,6 +4,9 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile.dev
       network: host
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     networks:
       - app-network
     container_name: api

@@ -19,15 +19,22 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.13-alpine AS production
 
+ARG UID=1000
+ARG GID=1000
+
 COPY --from=ghcr.io/astral-sh/uv:0.8.21 /uv /uvx /bin/
 
 RUN apk add libpq bash git --no-cache
 
-COPY --from=builder /app /app
+RUN addgroup -g ${GID} -S devuser && adduser -u ${UID} -S -G devuser devuser
+
+COPY --from=builder --chown=devuser:devuser /app /app
 
 RUN chmod +x /app/entrypoint.sh
 
 ENV PATH="/app/.venv/bin:$PATH"
+
+USER devuser
 
 WORKDIR /app
 
